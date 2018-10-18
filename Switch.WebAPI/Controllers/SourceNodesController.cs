@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using PusherServer;
+using Switch.WebAPI.Logics;
 using Switch.WebAPI.Models;
 
 namespace Switch.WebAPI.Controllers
@@ -28,8 +29,9 @@ namespace Switch.WebAPI.Controllers
         [Route("api/SourceNodes")]
         public HttpResponseMessage GetSourceNodes()
         {
-            var sourceNodes = _context.SourceNodes.Include(c=>c.Scheme).ToList();
-
+            //            var sourceNodes = _context.SourceNodes.Include(c=>c.Scheme).ToList();
+//            var sourceNodes = new EntityLogic<SourceNode>().GetList();
+            var sourceNodes = new EntityLogic<SourceNode>().GetAll(c => c.Scheme);
             return Request.CreateResponse(HttpStatusCode.OK, sourceNodes);
         }
 
@@ -40,7 +42,7 @@ namespace Switch.WebAPI.Controllers
         public HttpResponseMessage GetSourceNode([FromUri]int id)
         {
             var sourceNode = _context.SourceNodes.Include(c=>c.Scheme).SingleOrDefault(c => c.Id == id);
-
+//var sourceNode = new EntityLogic<SourceNode>().GetList();
             return Request.CreateResponse(HttpStatusCode.OK, sourceNode);
         }
 
@@ -51,7 +53,9 @@ namespace Switch.WebAPI.Controllers
         [Route("api/CreateSourceNode")]
         public async Task<HttpResponseMessage> CreateSourceNode(SourceNode sourceNode)
         {
-            var sourceName = _context.SourceNodes.SingleOrDefault(c => c.Name == sourceNode.Name);
+            //            var sourceName = _context.SourceNodes.SingleOrDefault(c => c.Name == sourceNode.Name);
+            //         SourceNode sourceName = new EntityLogic<SourceNode>().RetrieveSingle<SourceNode,string>(sourceNode.Name);
+            SourceNode sourceName = new EntityLogic<SourceNode>().GetSingle(c=>c.Name==sourceNode.Name);
             if (sourceName != null)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, StatusCodes.NAME_ALREADY_EXIST);
@@ -75,9 +79,11 @@ namespace Switch.WebAPI.Controllers
                 Status = sourceNode.Status,
                 SchemeId = sourceNode.SchemeId
             };
-
-            _context.SourceNodes.Add(sourceNodeInDb);
-            _context.SaveChanges();
+            EntityLogic<SourceNode> sourceLogic = new EntityLogic<SourceNode>();
+            sourceLogic.Insert(sourceNodeInDb);
+            sourceLogic.Save();
+            //            _context.SourceNodes.Add(sourceNodeInDb);
+            //            _context.SaveChanges();
 
             var options = new PusherOptions
             {
@@ -90,8 +96,7 @@ namespace Switch.WebAPI.Controllers
                 "1e8d9229f9b58c374f76",
                 "d3f1b6b70b528626fbef",
                 options);
-            var getSourceNode = _context.SourceNodes.Include(c => c.Scheme)
-                .SingleOrDefault(c => c.Id == sourceNodeInDb.Id);
+            var getSourceNode = new EntityLogic<SourceNode>().GetSingle(c=>c.Id==sourceNodeInDb.Id,c=>c.Scheme);
             var schemeName = getSourceNode.Scheme.Name;
             if (getSourceNode != null)
             {
@@ -105,9 +110,11 @@ namespace Switch.WebAPI.Controllers
                         HostName = getSourceNode.HostName,
                         IPAddress = getSourceNode.IPAddress,
                         Port = getSourceNode.Port,
-                        Status = getSourceNode.Status,
+                        SchemeName = schemeName,
                         
-                        SchemeName = schemeName
+                        Status = getSourceNode.Status
+                        
+                       
                     });
             }
            
@@ -121,23 +128,23 @@ namespace Switch.WebAPI.Controllers
         [Route("api/UpdateSourceNode")]
         public HttpResponseMessage UpdateSourceNode(SourceNode sourceNode)
 
-        {
-            var sourceInDb = _context.SourceNodes.SingleOrDefault(c => c.Id == sourceNode.Id);
 
-            if (sourceInDb != null)
+        {
+ 
+            try
             {
-                sourceInDb.Name = sourceNode.Name;
-                sourceInDb.HostName = sourceNode.HostName;
-                sourceInDb.IPAddress = sourceNode.IPAddress;
-                sourceInDb.Port = sourceNode.Port;
-                sourceInDb.Status = sourceNode.Status;
-                sourceInDb.SchemeId = sourceNode.SchemeId;
-                _context.SaveChanges();
+                EntityLogic<SourceNode> updateSourceNode = new EntityLogic<SourceNode>();
+                updateSourceNode.Update(sourceNode);
                 return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.UPDATED);
             }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
 
+            }
+         
 
-            return Request.CreateErrorResponse(HttpStatusCode.OK, StatusCodes.ERROR_DOESNT_EXIST);
+            return Request.CreateErrorResponse(HttpStatusCode.BadRequest, StatusCodes.ERROR_DOESNT_EXIST);
 
         }
 
@@ -149,9 +156,9 @@ namespace Switch.WebAPI.Controllers
         {
 
             var sourceNode = _context.SourceNodes.SingleOrDefault(c => c.Id == id);
-            _context.SourceNodes.Remove(sourceNode);
-            _context.SaveChanges();
-
+         
+            var deleteSourceNode = new EntityLogic<SourceNode>();
+            deleteSourceNode.Delete(sourceNode);
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.DELETED);
         }
     }

@@ -46,23 +46,23 @@ namespace Switch.WebAPI
             GlobalConfiguration.Configure(WebApiConfig.Register);
 //            string serverInfo = "127.0.0.1:85";
 //            string serverInfo = "127.0.0.1:90";
-            string serverIp = "127.0.0.1";
-//            int serverPort = 87;
-            int serverPort = 99;
-//            int serverPort = 8080;
-            var messageToSend = new Message()
-            {
-                Amount = 2000.00,
-                Channel = 10,
-                TransactionType = 01
-            };
-           
+//            string serverIp = "127.0.0.1";
+////            int serverPort = 87;
+//            int serverPort = 99;
+////            int serverPort = 8080;
+//            var messageToSend = new Message()
+//            {
+//                Amount = 2000.00,
+//                Channel = 10,
+//                TransactionType = 01
+//            };
+//           
             
-            var nodes = getSourceNodes();
+//            var nodes = getSourceNodes();
 //            var message = SerializeObject<List<SourceNode>>(nodes);
-            var message = SerializeObject<Message>(messageToSend);
+//            var message = SerializeObject<Message>(messageToSend);
 //            var message = "Hey!!!, I got a message";
-            ConnectToServer(serverIp, serverPort, message);
+//            ConnectToServer(serverIp, serverPort, message);
 //            System.Net.IPAddress remoteIpAddress = System.Net.IPAddress.Parse("0.0.0.0");
 //            System.Net.IPEndPoint localEndPoint = new System.Net.IPEndPoint(remoteIpAddress,  System.Convert.ToInt16("83", 10));
 

@@ -5,11 +5,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Web;
 using ProtoBuf;
+using Switch.WebAPI.Logics;
 
 namespace Switch.WebAPI.Models
 {
     [ProtoContract(IgnoreListHandling = true)]
-    public class SourceNode
+    public class SourceNode : IEntity<string>
     {
         [ProtoMember(1)]
         [Key]
