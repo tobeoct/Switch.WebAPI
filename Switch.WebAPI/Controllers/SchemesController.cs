@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using PusherServer;
+using Switch.WebAPI.Logics;
 using Switch.WebAPI.Models;
 
 namespace Switch.WebAPI.Controllers
@@ -136,9 +137,9 @@ namespace Switch.WebAPI.Controllers
         {
 
             var scheme = _context.Schemes.SingleOrDefault(c => c.Id == id);
-            _context.Schemes.Remove(scheme);
-            _context.SaveChanges();
-
+          
+            var deleteScheme = new EntityLogic<Scheme>();
+            deleteScheme.Delete(scheme);
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.DELETED);
         }
     }

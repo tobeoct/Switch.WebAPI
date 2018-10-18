@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Cors;
 using PusherServer;
+using Switch.WebAPI.Logics;
 using Switch.WebAPI.Models;
 
 namespace Switch.WebAPI.Controllers
@@ -128,9 +129,9 @@ namespace Switch.WebAPI.Controllers
         {
           
             var channel = _context.Channels.SingleOrDefault(c => c.Id == id);
-            _context.Channels.Remove(channel);
-            _context.SaveChanges();
-
+           
+            var deleteSourceNode = new EntityLogic<Channel>();
+            deleteSourceNode.Delete(channel);
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.DELETED);
         }
     }

@@ -10,7 +10,7 @@ using Switch.WebAPI.Logics;
 namespace Switch.WebAPI.Models
 {
     [ProtoContract(IgnoreListHandling = true)]
-    public class SourceNode : IEntity<string>
+    public class SourceNode 
     {
         [ProtoMember(1)]
         [Key]
