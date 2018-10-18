@@ -4,6 +4,7 @@ using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using System.Web;
 using PusherServer;
 using Switch.WebAPI.Models;
@@ -14,6 +15,21 @@ namespace Switch.WebAPI.Logics
    
     public class EntityLogic<T> where T : class, new()
     {
+        private readonly Pusher _pusher;
+        public EntityLogic()
+        {
+            var options = new PusherOptions
+            {
+                Cluster = "mt1",
+                Encrypted = true
+            };
+
+            _pusher = new Pusher(
+                "619556",
+                "1e8d9229f9b58c374f76",
+                "d3f1b6b70b528626fbef",
+                options);
+        }
         protected virtual ApplicationDbContext GetContext()
         {
             return new ApplicationDbContext();
@@ -108,19 +124,18 @@ namespace Switch.WebAPI.Logics
             return count;
         }
 
-        public void Pusher(T entity)
+        public async Task Pusher(T entity, string title)
         {
-            var options = new PusherOptions
+           
+            
+            if (entity != null)
             {
-                Cluster = "mt1",
-                Encrypted = true
-            };
-
-            var pusher = new Pusher(
-                "619556",
-                "1e8d9229f9b58c374f76",
-                "d3f1b6b70b528626fbef",
-                options);
+                var result = await _pusher.TriggerAsync(
+                    "my-"+title+"s",
+                    "new-"+title,
+                    data:  entity
+                    );
+            }
 
 
         }

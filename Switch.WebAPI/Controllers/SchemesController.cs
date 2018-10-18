@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -16,10 +17,12 @@ namespace Switch.WebAPI.Controllers
     [EnableCors("*", "*", "*")]
     public class SchemesController : ApiController
     {
-        private ApplicationDbContext _context;
+      
+        private EntityLogic<Scheme> _entityLogic;
         public SchemesController()
         {
-            _context = new ApplicationDbContext();
+           
+            _entityLogic = new EntityLogic<Scheme>();
         }
 
         // GET api/<controller>
@@ -28,7 +31,7 @@ namespace Switch.WebAPI.Controllers
         [Route("api/Schemes")]
         public HttpResponseMessage GetSchemes()
         {
-            var schemes = _context.Schemes.ToList();
+            var schemes = _entityLogic.GetList();
 
             return Request.CreateResponse(HttpStatusCode.OK, schemes);
         }
@@ -39,71 +42,31 @@ namespace Switch.WebAPI.Controllers
         [Route("api/Scheme")]
         public HttpResponseMessage GetScheme([FromUri]int id)
         {
-            var scheme = _context.Schemes.Include(c=>c.TransactionType).Include(c=>c.Channel).Include(c=>c.Route).Include(c=>c.Fee).SingleOrDefault(c => c.Id == id);
+            var scheme = _entityLogic.GetSingle(c => c.Id == id, c => c.TransactionType, c => c.Channel, c => c.Route, c => c.Fee);
 
             return Request.CreateResponse(HttpStatusCode.OK, scheme);
         }
-        
+
         // POST api/<controller>
         [AcceptVerbs("POST")]
         [HttpPost]
         [Route("api/CreateScheme")]
         public async Task<HttpResponseMessage> CreateScheme(Scheme scheme)
         {
-            var schemeName = _context.Schemes.SingleOrDefault(c => c.Name == scheme.Name);
+            var schemeName = _entityLogic.GetSingle(c => c.Name == scheme.Name);
             if (schemeName != null)
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, StatusCodes.NAME_ALREADY_EXIST);
             }
             scheme.Id = 0;
 
-            Console.WriteLine("Posted Scheme : " + scheme);
-            var schemeInDb = new Scheme()
-            {
-                Name = scheme.Name,
-                RouteId = scheme.RouteId,
-                ChannelId = scheme.ChannelId,
-                TransactionTypeId = scheme.TransactionTypeId,
-                FeeId = scheme.FeeId,
-                Description = scheme.Description
+            _entityLogic.Insert(scheme);
+            _entityLogic.Save();
 
-            };
 
-            _context.Schemes.Add(schemeInDb);
-            _context.SaveChanges();
 
-            var options = new PusherOptions
-            {
-                Cluster = "mt1",
-                Encrypted = true
-            };
-
-            var getSchemes = _context.Schemes.Include(c => c.Route).Include(c => c.TransactionType)
-                .Include(c => c.Channel).Include(c => c.Fee).SingleOrDefault(c => c.Id == schemeInDb.Id);
-            var pusher = new Pusher(
-                "619556",
-                "1e8d9229f9b58c374f76",
-                "d3f1b6b70b528626fbef",
-                options);
-
-            var result = await pusher.TriggerAsync(
-                "my-schemes",
-                "new-scheme",
-               data: new
-               {
-                   Id = getSchemes.Id,
-                   Name = getSchemes.Name,
-                   RouteId = getSchemes.RouteId,
-                   Route = getSchemes.Route,
-                   ChannelId = getSchemes.ChannelId,
-                   Channel= getSchemes.Channel,
-                   TransactionTypeId = getSchemes.TransactionTypeId,
-                   TransactionType = getSchemes.TransactionType,
-                   FeeId= getSchemes.FeeId,
-                   Fee = getSchemes.Fee,
-                   Description= getSchemes.Description
-
-               });
+            var getSchemes = _entityLogic.GetSingle(c => c.Id == scheme.Id, c => c.TransactionType, c => c.Channel, c => c.Route, c => c.Fee);
+            await _entityLogic.Pusher(getSchemes, "scheme");
 
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.CREATED);
 
@@ -116,16 +79,18 @@ namespace Switch.WebAPI.Controllers
         public HttpResponseMessage UpdateScheme(Scheme scheme)
 
         {
-            var schemeInDb = _context.Schemes.SingleOrDefault(c => c.Id == scheme.Id);
-           
-            schemeInDb.Name = scheme.Name;
-            schemeInDb.ChannelId = scheme.ChannelId;
-            schemeInDb.FeeId = scheme.FeeId;
-            schemeInDb.RouteId = scheme.RouteId;
-            schemeInDb.TransactionTypeId = scheme.TransactionTypeId;
-            schemeInDb.Description = scheme.Description;
-            
-            _context.SaveChanges();
+            try
+            {
+
+                _entityLogic.Update(scheme);
+                return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.UPDATED);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine(e);
+
+            }
+
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.UPDATED);
         }
 
@@ -136,10 +101,8 @@ namespace Switch.WebAPI.Controllers
         public HttpResponseMessage DeleteScheme([FromUri]int id)
         {
 
-            var scheme = _context.Schemes.SingleOrDefault(c => c.Id == id);
-          
-            var deleteScheme = new EntityLogic<Scheme>();
-            deleteScheme.Delete(scheme);
+            var scheme = _entityLogic.GetSingle(c => c.Id == id);
+            _entityLogic.Delete(scheme);
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.DELETED);
         }
     }

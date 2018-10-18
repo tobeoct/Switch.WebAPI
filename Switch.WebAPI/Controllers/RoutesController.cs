@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -21,7 +22,7 @@ namespace Switch.WebAPI.Controllers
         public RoutesController()
         {
             _context = new ApplicationDbContext();
-            _entityLogic=new EntityLogic<Route>();
+            _entityLogic = new EntityLogic<Route>();
         }
 
         // GET api/<controller>
@@ -30,7 +31,7 @@ namespace Switch.WebAPI.Controllers
         [Route("api/Routes")]
         public HttpResponseMessage GetRoutes()
         {
-            var routes = _entityLogic.GetAll(c=>c.SinkNode);
+            var routes = _entityLogic.GetAll(c => c.SinkNode);
 
             return Request.CreateResponse(HttpStatusCode.OK, routes);
         }
@@ -41,7 +42,7 @@ namespace Switch.WebAPI.Controllers
         [Route("api/Route")]
         public HttpResponseMessage GetRoute([FromUri]int id)
         {
-            var route = _entityLogic.GetSingle(c=>c.Id==id,c=>c.SinkNode);
+            var route = _entityLogic.GetSingle(c => c.Id == id, c => c.SinkNode);
 
             return Request.CreateResponse(HttpStatusCode.OK, route);
         }
@@ -58,47 +59,11 @@ namespace Switch.WebAPI.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, StatusCodes.NAME_ALREADY_EXIST);
             }
             route.Id = 0;
+            _entityLogic.Insert(route);
+            _entityLogic.Save();
 
-            
-            var routeInDb = new Route()
-            {
-                Name = route.Name,
-                CardPan = route.CardPan,
-                SinkNodeId = route.SinkNodeId,
-                Description = route.Description
-
-            };
-
-            _context.Routes.Add(routeInDb);
-            _context.SaveChanges();
-
-            var options = new PusherOptions
-            {
-                Cluster = "mt1",
-                Encrypted = true
-            };
-
-            var getRoutes = _entityLogic.GetSingle(c => c.Id == routeInDb.Id, c => c.SinkNode);
-            var pusher = new Pusher(
-                "619556",
-                "1e8d9229f9b58c374f76",
-                "d3f1b6b70b528626fbef",
-                options);
-
-            if (getRoutes != null)
-            {
-                var result = await pusher.TriggerAsync(
-                    "my-routes",
-                    "new-route",
-                    data: new
-                    {
-                        Id = getRoutes.Id,
-                        Name = getRoutes.Name,
-                        CardPan = getRoutes.CardPan,
-                        SinkNodeName = getRoutes.SinkNode.Name,
-                        Description = getRoutes.Description
-                    });
-            }
+            var getRoutes = _entityLogic.GetSingle(c => c.Id == route.Id, c => c.SinkNode);
+            await _entityLogic.Pusher(getRoutes, "route");
 
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.CREATED);
 
@@ -119,11 +84,11 @@ namespace Switch.WebAPI.Controllers
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Debug.WriteLine(e);
 
             }
 
-            _context.SaveChanges();
+           
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.UPDATED);
         }
         // DELETE api/<controller>/5
@@ -133,7 +98,7 @@ namespace Switch.WebAPI.Controllers
         public HttpResponseMessage DeleteRoute([FromUri]int id)
         {
 
-            var route = _entityLogic.GetSingle(c => c.Id == id);        
+            var route = _entityLogic.GetSingle(c => c.Id == id);
             _entityLogic.Delete(route);
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.DELETED);
         }

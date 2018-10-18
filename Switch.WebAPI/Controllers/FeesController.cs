@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -41,7 +42,6 @@ namespace Switch.WebAPI.Controllers
         [Route("api/Fee")]
         public HttpResponseMessage GetFee([FromUri]int id)
         {
-//            var fee = _context.Fees.SingleOrDefault(c => c.Id == id);
             var fee = _entityLogic.GetSingle(c => c.Id == id);
             return Request.CreateResponse(HttpStatusCode.OK, fee);
         }
@@ -75,50 +75,12 @@ namespace Switch.WebAPI.Controllers
             {
                 fee.Minimum = null;
             }
+          
+            _entityLogic.Insert(fee);
+            _entityLogic.Save();
 
-
-            var feeInDb = new Fee()
-            {
-                Name = fee.Name,
-               FlatAmount = fee.FlatAmount,
-                PercentOfTrx = fee.PercentOfTrx,
-                Maximum = fee.Maximum,
-                Minimum = fee.Minimum
-
-            };
-
-           var feeLogic = new EntityLogic<Fee>();
-            feeLogic.Insert(feeInDb);
-            feeLogic.Save();
-
-            var options = new PusherOptions
-            {
-                Cluster = "mt1",
-                Encrypted = true
-            };
-
-            var getFees = _entityLogic.GetSingle(c => c.Id == feeInDb.Id);
-            var pusher = new Pusher(
-                "619556",
-                "1e8d9229f9b58c374f76",
-                "d3f1b6b70b528626fbef",
-                options);
-
-            if (getFees != null)
-            {
-                var result = await pusher.TriggerAsync(
-                    "my-fees",
-                    "new-fee",
-                    data: new
-                    {
-                        Id = getFees.Id,
-                        Name = getFees.Name,
-                        FlatAmount = getFees.FlatAmount,
-                        PercentOfTrx = getFees.PercentOfTrx,
-                        Maximum = getFees.Maximum,
-                        Minimum = getFees.Minimum
-                    });
-            }
+            var getFees = _entityLogic.GetSingle(c => c.Id == fee.Id);
+            await _entityLogic.Pusher(getFees, "fee");
 
             return Request.CreateResponse(HttpStatusCode.OK, StatusCodes.CREATED);
 
@@ -139,7 +101,7 @@ namespace Switch.WebAPI.Controllers
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Debug.WriteLine(e);
 
             }
 
